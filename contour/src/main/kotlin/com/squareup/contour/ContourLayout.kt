@@ -24,7 +24,7 @@ import android.view.View
 import android.view.ViewGroup
 import com.squareup.contour.constraints.SizeConfig
 import com.squareup.contour.errors.CircularReferenceDetected
-import com.squareup.contour.solvers.*
+import com.squareup.contour.solvers.AxisSolver
 import com.squareup.contour.solvers.ComparisonResolver
 import com.squareup.contour.solvers.ComparisonResolver.CompareBy.MaxOf
 import com.squareup.contour.solvers.ComparisonResolver.CompareBy.MinOf
@@ -33,6 +33,8 @@ import com.squareup.contour.solvers.SimpleAxisSolver.Point.Baseline
 import com.squareup.contour.solvers.SimpleAxisSolver.Point.Max
 import com.squareup.contour.solvers.SimpleAxisSolver.Point.Mid
 import com.squareup.contour.solvers.SimpleAxisSolver.Point.Min
+import com.squareup.contour.solvers.XAxisSolver
+import com.squareup.contour.solvers.YAxisSolver
 import com.squareup.contour.utils.toXInt
 import com.squareup.contour.utils.toYInt
 import com.squareup.contour.utils.unwrapXIntLambda
@@ -268,10 +270,8 @@ open class ContourLayout(
   inline fun Int.toXInt(): XInt = XInt(this)
   inline fun Int.toYInt(): YInt = YInt(this)
 
-  @Deprecated(
-      "Views should be configured by overriding onInitializeLayout() in your ContourLayout " +
-          "subclass and calling view.applyLayout() on the corresponding view."
-  )
+  @Suppress("DeprecatedCallableAddReplaceWith") // ReplaceWith() does't play nice with lambdas.
+  @Deprecated("Consider using contour() instead")
   fun <T : View> T.contourOf(
     addToViewGroup: Boolean = true,
     config: T.() -> LayoutSpec
@@ -285,6 +285,30 @@ open class ContourLayout(
       viewGroup.addView(this)
     }
     return this
+  }
+
+  fun <T : View> contour(
+    viewBuilder: (context: Context) -> T,
+    addToViewGroup: Boolean = true,
+    specProvider: T.() -> LayoutSpec
+  ): T {
+    return contour(viewBuilder(context), addToViewGroup, specProvider)
+  }
+
+  fun <T : View> contour(
+    view: T,
+    addToViewGroup: Boolean = true,
+    specProvider: T.() -> LayoutSpec
+  ): T {
+    val spec = specProvider(view)
+    spec.dimen = ViewDimensions(view)
+    spec.parent = geometry
+    spec.view = view
+    view.layoutParams = spec
+    if (addToViewGroup) {
+      addView(view)
+    }
+    return view
   }
 
   /**

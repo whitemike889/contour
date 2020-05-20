@@ -7,6 +7,7 @@ import android.util.TypedValue
 import android.widget.ImageView
 import android.widget.TextView
 import com.squareup.contour.ContourLayout
+import com.squareup.contour.ContourLayout.LayoutSpec
 import com.squareup.contour.SizeMode.AtMost
 import com.squareup.picasso.Picasso
 import kotlin.contracts.ExperimentalContracts
@@ -21,28 +22,42 @@ class SampleView2(context: SampleActivity) : ContourLayout(context) {
       "Commanding Officer Captain Ben Sisko"
   )
 
-  private val avatar =
-    AvatarImageView(context).apply {
-      scaleType = ImageView.ScaleType.CENTER_CROP
-      Picasso.get()
-          .load("https://upload.wikimedia.org/wikipedia/en/9/92/BenSisko.jpg")
-          .into(this)
-      paint.strokeWidth = 3f.dip
-    }
+  // Lambda reference works great for Views with a single param constructor.
+  private val avatar = contour(::AvatarImageView) {
+    scaleType = ImageView.ScaleType.CENTER_CROP
+    Picasso.get()
+        .load("https://upload.wikimedia.org/wikipedia/en/9/92/BenSisko.jpg")
+        .into(this)
+    paint.strokeWidth = 3f.dip
+    LayoutSpec(
+        x = leftTo { parent.left() + 15.dip }.widthOf { 50.xdip },
+        y = topTo { parent.top() + 15.dip }.heightOf { 50.ydip }
+    )
+  }
 
-  private val name =
-    TextView(context).apply {
-      text = "Ben Sisko"
-      setSingleLine()
-      ellipsize = TruncateAt.END
-      setTextColor(White)
-      setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24f)
-    }
+  private val name: TextView = contour(TextView(context)) {
+    text = "Ben Sisko"
+    setSingleLine()
+    ellipsize = TruncateAt.END
+    setTextColor(White)
+    setTextSize(TypedValue.COMPLEX_UNIT_DIP, 24f)
+    LayoutSpec(
+        x = leftTo { avatar.right() + 15.dip }
+            .rightTo(AtMost) { parent.width() - checkmark.width() - 30.dip },
+        y = centerVerticallyTo { parent.centerY() }
+    )
+  }
 
-  private val checkmark =
-    ImageView(context).apply {
-      setImageResource(R.drawable.check_mark)
-    }
+  private val checkmark = contour(ImageView(context)) {
+    setImageResource(R.drawable.check_mark)
+    LayoutSpec(
+        x = minOf(
+            leftTo { name.right() + 15.dip },
+            rightTo { parent.width() - 15.dip }
+        ),
+        y = centerVerticallyTo { name.centerY() }
+    )
+  }
 
   init {
     setBackgroundColor(Blue)
@@ -66,35 +81,5 @@ class SampleView2(context: SampleActivity) : ContourLayout(context) {
             .start()
       }
     }
-  }
-
-  override fun onInitializeLayout() {
-    avatar.applyLayout(
-        leftTo {
-          parent.left() + 15.dip
-        }.widthOf {
-          50.xdip
-        },
-        topTo {
-          parent.top() + 15.dip
-        }.heightOf {
-          50.ydip
-        }
-    )
-    name.applyLayout(
-        leftTo {
-          avatar.right() + 15.dip
-        }.rightTo(AtMost) {
-          parent.width() - checkmark.width() - 30.dip
-        },
-        centerVerticallyTo { parent.centerY() }
-    )
-    checkmark.applyLayout(
-        minOf(
-            leftTo { name.right() + 15.dip },
-            rightTo { parent.width() - 15.dip }
-        ),
-        centerVerticallyTo { name.centerY() }
-    )
   }
 }
